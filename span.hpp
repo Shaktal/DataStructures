@@ -38,7 +38,7 @@ public: // Accessors
     constexpr const_reference operator[](size_type index) const noexcept;
 
     constexpr reference at(size_type index);
-    constexpr const_reference at(size_type index); const;
+    constexpr const_reference at(size_type index) const;
 
     constexpr reference front() noexcept;
     constexpr const_reference front() const noexcept;
@@ -115,14 +115,14 @@ inline constexpr typename span<T>::const_reference span<T>::operator[](size_type
 }
 
 template <typename T>
-inline constexpr typename span<T>::reference span<T>::at(size_type index) noexcept
+inline constexpr typename span<T>::reference span<T>::at(size_type index)
 {
     if (index >= this->size()) { throw std::out_of_range("Index not in range"); }
     return d_begin[index];
 }
 
 template <typename T>
-inline constexpr typename span<T>::const_reference span<T>::at(size_type index) const noexcept
+inline constexpr typename span<T>::const_reference span<T>::at(size_type index) const
 {
     if (index >= this->size()) { throw std::out_of_range("Index not in range"); }
     return d_begin[index];
