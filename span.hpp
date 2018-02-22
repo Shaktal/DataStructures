@@ -5,6 +5,7 @@
 #include <cassert>
 #include <cstddef>
 #include <iterator>
+#include <limits>
 #include <stdexcept>
 #include <type_traits>
 
@@ -58,6 +59,10 @@ public: // Accessors
 
     constexpr pointer data() noexcept;
     constexpr const_pointer data() const noexcept;
+
+public: // Subspan
+    constexpr span<T> subspan(size_type index,
+        size_type length = std::numeric_limits<size_type>::max()) const noexcept;
 
 public: // Iterators
     constexpr iterator begin() noexcept;
@@ -219,6 +224,14 @@ template <typename T>
 inline constexpr typename span<T>::const_pointer span<T>::data() const noexcept
 {
     return this->d_begin;
+}
+
+// Subspan
+template <typename T>
+inline constexpr span<T> span<T>::subspan(size_type index, size_type length) const noexcept
+{
+    return {this->d_begin + index, 
+        std::min(this->size() - std::min(index, this->size()), length)};
 }
 
 // Iterators

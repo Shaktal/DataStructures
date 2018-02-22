@@ -107,3 +107,14 @@ TEST(Span, data_returns_the_original_address)
     using namespace ::testing;
     EXPECT_THAT(sp.data(), Eq(arr));
 }
+
+TEST(Span, subspan_works_correctly)
+{
+    int arr[6] = {1, 2, 3, 4, 5, 6};
+    data_structures::span<int> sp(arr);
+
+    using namespace ::testing;
+    EXPECT_THAT(sp.subspan(0u, 3u), ElementsAre(1, 2, 3));
+    EXPECT_THAT(sp.subspan(2u), ElementsAre(3, 4, 5, 6));
+    EXPECT_THAT(sp.subspan(4u, 1u), ElementsAre(5));
+}
