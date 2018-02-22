@@ -1,9 +1,11 @@
 #ifndef SPAN_HPP
 #define SPAN_HPP
 
+#include <array>
 #include <cassert>
 #include <iterator>
 #include <stdexcept>
+#include <type_traits>
 
 namespace data_structures {
 
@@ -30,6 +32,10 @@ public: // Constructors
     constexpr span(T* ptrBegin, std::size_t length) noexcept;
     template <std::size_t N>
     constexpr span(T (&arr)[N]) noexcept;
+    template <std::size_t N>
+    constexpr span(std::array<std::remove_const_t<T>, N>& arr) noexcept;
+    template <std::size_t N>
+    constexpr span(const std::array<std::remove_const_t<T>, N>& arr) noexcept;
     constexpr span(const span& other) noexcept;
     ~span() = default;
 
@@ -109,6 +115,20 @@ template <std::size_t N>
 inline constexpr span<T>::span(T (&arr)[N]) noexcept
     : d_begin(std::begin(arr))
     , d_end(d_begin + N)
+{}
+
+template <typename T>
+template <std::size_t N>
+inline constexpr span<T>::span(std::array<std::remove_const_t<T>, N>& arr) noexcept
+    : d_begin(std::begin(arr))
+    , d_end(std::end(arr))
+{}
+
+template <typename T>
+template <std::size_t N>
+inline constexpr span<T>::span(const std::array<std::remove_const_t<T>, N>& arr) noexcept
+    : d_begin(std::begin(arr))
+    , d_end(std::end(arr))
 {}
 
 template <typename T>

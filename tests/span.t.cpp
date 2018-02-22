@@ -12,6 +12,19 @@ TEST(Span, can_construct_from_array)
     EXPECT_THAT(sp, ElementsAre(-1, 0, 1));
 }
 
+TEST(Span, can_construct_from_std_array)
+{
+    constexpr std::array<int, 3u> arr = {1, 2, 3};
+    data_structures::span<const int> sp(arr);
+
+    std::array<unsigned int, 5u> arr2 = {1u, 2u, 3u, 4u, 5u};
+    data_structures::span<unsigned int> sp2(arr2);
+
+    using namespace ::testing;
+    EXPECT_THAT(sp, ElementsAre(1, 2, 3));
+    EXPECT_THAT(sp2, ElementsAre(1u, 2u, 3u, 4u, 5u));
+}
+
 TEST(Span, copied_span_compares_equal)
 {
     constexpr int arr[3] = {1, 2, 3};
