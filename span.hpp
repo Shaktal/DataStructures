@@ -1,6 +1,7 @@
 #ifndef SPAN_HPP
 #define SPAN_HPP
 
+#include <cassert>
 #include <iterator>
 #include <stdexcept>
 
@@ -27,6 +28,8 @@ public: // Types
 public: // Constructors
     constexpr span() noexcept;
     constexpr span(T* ptrBegin, std::size_t length) noexcept;
+    template <std::size_t N>
+    constexpr span(T (&arr)[N]) noexcept;
     constexpr span(const span& other) noexcept;
     ~span() = default;
 
@@ -72,6 +75,19 @@ private: // Members
     T*          d_end;
 };
 
+// Comparison
+template <typename T>
+inline constexpr bool operator==(const span<T>& lhs, const span<T>& rhs) noexcept
+{
+    return std::equal(lhs.cbegin(), lhs.cend(), rhs.cbegin(), rhs.cend());
+}
+
+template <typename T>
+inline constexpr bool operator!=(const span<T>& lhs, const span<T>& rhs) noexcept
+{
+    return !(lhs == rhs);
+}
+
 // Constructors
 template <typename T>
 inline constexpr span<T>::span() noexcept
@@ -83,6 +99,13 @@ template <typename T>
 inline constexpr span<T>::span(T* ptrBegin, std::size_t length) noexcept
     : d_begin(ptrBegin)
     , d_end(ptrBegin + length)
+{}
+
+template <typename T>
+template <std::size_t N>
+inline constexpr span<T>::span(T (&arr)[N]) noexcept
+    : d_begin(std::begin(arr))
+    , d_end(d_begin + N)
 {}
 
 template <typename T>
@@ -154,6 +177,92 @@ inline constexpr typename span<T>::const_reference span<T>::back() const noexcep
 {
     assert(!this->empty());
     return *(this->d_end - 1u);
+}
+
+// Iterators
+template <typename T>
+inline constexpr typename span<T>::iterator span<T>::begin() noexcept
+{
+    return this->d_begin;
+}
+
+template <typename T>
+inline constexpr typename span<T>::const_iterator span<T>::begin() const noexcept
+{
+    return this->cbegin();
+}
+
+template <typename T>
+inline constexpr typename span<T>::const_iterator span<T>::cbegin() const noexcept
+{
+    return this->d_begin;
+}
+
+template <typename T>
+inline constexpr typename span<T>::iterator span<T>::end() noexcept
+{
+    return this->d_end;
+}
+
+template <typename T>
+inline constexpr typename span<T>::const_iterator span<T>::end() const noexcept
+{
+    return this->cend();
+}
+
+template <typename T>
+inline constexpr typename span<T>::const_iterator span<T>::cend() const noexcept
+{
+    return this->d_end;
+}
+
+template <typename T>
+inline constexpr typename span<T>::reverse_iterator span<T>::rbegin() noexcept
+{
+    return reverse_iterator{ this->d_end };
+}
+
+template <typename T>
+inline constexpr typename span<T>::const_reverse_iterator span<T>::rbegin() const noexcept
+{
+    return this->crbegin();
+}
+
+template <typename T>
+inline constexpr typename span<T>::const_reverse_iterator span<T>::crbegin() const noexcept
+{
+    return const_reverse_iterator{ this->d_end };
+}
+
+template <typename T>
+inline constexpr typename span<T>::reverse_iterator span<T>::rend() noexcept
+{
+    return reverse_iterator{ this->d_begin };
+}
+
+template <typename T>
+inline constexpr typename span<T>::const_reverse_iterator span<T>::rend() const noexcept
+{
+    return this->crend();
+}
+
+template <typename T>
+inline constexpr typename span<T>::const_reverse_iterator span<T>::crend() const noexcept
+{
+    return const_reverse_iterator{ this->d_begin };
+}
+
+// Capacity
+template <typename T>
+inline constexpr typename span<T>::size_type span<T>::size() const noexcept
+{
+    return (this->d_end - this->d_begin);
+}
+
+template <typename T>
+inline constexpr typename span<T>::size_type span<T>::length() const noexcept
+{
+    return this->size();
 }
 
 } // close namespace data_structures
