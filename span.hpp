@@ -3,6 +3,7 @@
 
 #include <array>
 #include <cassert>
+#include <cstddef>
 #include <iterator>
 #include <stdexcept>
 #include <type_traits>
@@ -78,6 +79,12 @@ public: // Iterators
 public: // Capacity
     constexpr size_type size() const noexcept;
     constexpr size_type length() const noexcept;
+
+public: // Conversion
+    constexpr span<const std::byte> as_bytes() const noexcept;
+
+    template <typename U = T>
+    constexpr std::enable_if_t<!std::is_const_v<U>, span<std::byte>> as_writable_bytes() noexcept;
 
 private: // Members
     T*          d_begin;
@@ -298,6 +305,21 @@ template <typename T>
 inline constexpr typename span<T>::size_type span<T>::length() const noexcept
 {
     return this->size();
+}
+
+// Conversion
+template <typename T>
+inline constexpr span<const std::byte> span<T>::as_bytes() const noexcept
+{
+    return { reinterpret_cast<const std::byte*>(this->d_begin), sizeof(T) * this->size() };
+}
+
+template <typename T>
+template <typename U>
+inline constexpr std::enable_if_t<!std::is_const_v<U>, span<std::byte>> span<T>::as_writable_bytes()
+    noexcept
+{
+    return { reinterpret_cast<std::byte*>(this->d_begin), sizeof(T) * this->size() };
 }
 
 } // close namespace data_structures
