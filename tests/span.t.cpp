@@ -85,3 +85,12 @@ TEST(Span, at_throws_an_exception_iff_out_of_range)
     EXPECT_THROW(sp.at(6u), std::out_of_range);
     EXPECT_NO_THROW((sp.at(0u), sp.at(1u), sp.at(2u)));
 }
+
+TEST(Span, data_returns_the_original_address)
+{
+    constexpr unsigned int arr[2] = {1u, 6u};
+    data_structures::span<const unsigned int> sp(arr);
+
+    using namespace ::testing;
+    EXPECT_THAT(sp.data(), Eq(arr));
+}

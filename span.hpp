@@ -49,6 +49,9 @@ public: // Accessors
     constexpr reference back() noexcept;
     constexpr const_reference back() const noexcept;
 
+    constexpr pointer data() noexcept;
+    constexpr const_pointer data() const noexcept;
+
 public: // Iterators
     constexpr iterator begin() noexcept;
     constexpr const_iterator begin() const noexcept;
@@ -177,6 +180,18 @@ inline constexpr typename span<T>::const_reference span<T>::back() const noexcep
 {
     assert(!this->empty());
     return *(this->d_end - 1u);
+}
+
+template <typename T>
+inline constexpr typename span<T>::pointer span<T>::data() noexcept
+{
+    return this->d_begin;
+}
+
+template <typename T>
+inline constexpr typename span<T>::const_pointer span<T>::data() const noexcept
+{
+    return this->d_begin;
 }
 
 // Iterators
