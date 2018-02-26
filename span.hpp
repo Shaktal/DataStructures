@@ -96,6 +96,10 @@ private: // Members
     T*          d_end;
 };
 
+// =================================================================
+// INLINE DEFINITIONS
+// =================================================================
+
 // Comparison
 template <typename T>
 inline constexpr bool operator==(const span<T>& lhs, const span<T>& rhs) noexcept
