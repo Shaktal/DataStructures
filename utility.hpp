@@ -32,7 +32,7 @@ template <typename Iterator>
 using at_least_forward_iterator_t = typename at_least_forward_iterator<Iterator>::type;
 
 template <typename Iterator>
-inline constexpr at_least_forward_iterator_v = at_least_forward_iterator<Iterator>::value;
+inline constexpr bool at_least_forward_iterator_v = at_least_forward_iterator<Iterator>::value;
 
 } // close namespace tr::data_structures
 
