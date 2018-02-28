@@ -9,7 +9,7 @@
 #include <stdexcept>
 #include <type_traits>
 
-namespace data_structures {
+namespace tr::data_structures {
 
 template <typename T>
 class span {
@@ -339,6 +339,6 @@ inline constexpr std::enable_if_t<!std::is_const_v<U>, span<std::byte>> span<T>:
     return { reinterpret_cast<std::byte*>(this->d_begin), sizeof(T) * this->size() };
 }
 
-} // close namespace data_structures
+} // close namespace tr::data_structures
 
 #endif // SPAN_HPP

@@ -3,6 +3,8 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
+using namespace tr;
+
 TEST(Span, can_construct_from_array)
 {
     constexpr int arr[3] = {-1, 0, 1};

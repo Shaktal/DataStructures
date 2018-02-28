@@ -3,7 +3,7 @@
 
 #include <utility>
 
-namespace data_structures {
+namespace tr::data_structures {
 
 template <typename T, typename Buffer>
 struct LocalBufferedAllocator {
@@ -90,6 +90,6 @@ inline void swap(LocalBufferedAllocator<T, Buffer>& rhs, LocalBufferedAllocator<
     swap(lhs.d_buffer, rhs.d_buffer);
 }
 
-} // close namespace data_structures
+} // close namespace tr::data_structures
 
 #endif // LOCAL_BUFFERED_ALLOCATOR_HPP

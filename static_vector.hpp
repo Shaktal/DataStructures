@@ -1,7 +1,7 @@
 #ifndef STATIC_VECTOR_HPP
 #define STATIC_VECTOR_HPP
 
-namespace data_structures {
+namespace tr::data_structures {
 
 template <typename T, std::size_t N>
 class static_vector {
@@ -28,6 +28,6 @@ public: // Types
 // =================================================================
 
 
-} // close namespace data_structures
+} // close namespace tr::data_structures
 
 #endif // STATIC_VECTOR_HPP

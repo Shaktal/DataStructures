@@ -2,10 +2,11 @@
 #define INLINE_VECTOR_HPP
 
 #include <span.hpp>
+#include <utility.hpp>
 
 #include <memory>
 
-namespace data_structures {
+namespace tr::data_structures {
 
 template <typename T, typename Allocator>
 class inline_vector : private Allocator
@@ -306,6 +307,20 @@ inline void inline_vector<T, Allocator>::push_back_range(span<std::remove_const_
     this->d_size += range.length();
 }
 
-} // close namespace data_structures
+template <typename T, typename Allocator>
+template <typename InputIt>
+inline void inline_vector<T, Allocator>::push_back_range(InputIt first, InputIt last)
+{
+    if constexpr (utility::at_least_forward_iterator_v<InputIt>)
+    {
+
+    }
+    else
+    {
+
+    }
+}
+
+} // close namespace tr::data_structures
 
 #endif // INLINE_VECTOR_HPP

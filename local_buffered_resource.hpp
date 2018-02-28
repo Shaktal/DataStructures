@@ -6,7 +6,7 @@
 #include <new>
 #include <type_traits>
 
-namespace data_structures {
+namespace tr::data_structures {
 
 template <std::size_t Capacity, std::size_t Alignment = alignof(std::max_align_t)>
 struct LocalBufferedResource {
@@ -77,6 +77,6 @@ inline constexpr void* LocalBufferedResource<Capacity, Alignment>::allocate(
         "Buffer does not have enough contiguous space");
 }
 
-} // close namespace data_structures
+} // close namespace tr::data_structures
 
 #endif // LOCAL_BUFFERED_RESOURCE
