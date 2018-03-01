@@ -313,12 +313,72 @@ inline void inline_vector<T, Allocator>::push_back_range(InputIt first, InputIt 
 {
     if constexpr (utility::at_least_forward_iterator_v<InputIt>)
     {
+        size_type length = std::distance(first, last);
 
+        if (this->d_capacity - this->d_size < range.length())
+        {
+            reserve(this->d_capacity * RESIZE_FACTOR);
+        }
+
+        this->d_blockManager.emplace_back(this->d_size, length);
+
+        try {
+            std::uninitialized_copy(first, last, this->d_buffer + this->d_size);
+        }
+        catch (...)
+        {
+            this->d_blockManager.pop_back();
+            throw;
+        }
+
+        this->d_size += length;
     }
     else
     {
+        size_type count = 0u;
+        try {
+            while (first != last)
+            {
+                if (this->d_size == this->d_capacity)
+                {
+                    resize(this->d_capacity * RESIZE_FACTOR);
+                }
 
+                ::new (static_cast<void*>(this->d_buffer + this->d_size))
+                    T(*first);
+                ++this->d_size;
+
+                ++first, ++count;
+            }
+        }
+        catch (...)
+        {
+            std::for_each(
+                this->d_buffer + this->d_size - count,
+                this->d_buffer + this->d_size, 
+                [](T& obj) noexcept {
+                    obj.~T();
+                }
+            );
+
+            throw;
+        }
+
+        this->d_blockManager.emplace_back(this->d_size - count, count);
     }
+}
+
+template <typename T, typename Allocator>
+inline void inline_vector<T, Allocator>::pop_back_range() noexcept
+{
+    assert(!this->empty());
+    auto [start_pos, length] = this->d_blockManager.back();
+
+    std::for_each(this->d_buffer + start_pos, this->d_buffer + start_pos + length,
+        [](T& obj) noexcept { obj.~T(); });
+
+    this->d_blockManager.pop_back();
+    this->d_size = start_pos;
 }
 
 } // close namespace tr::data_structures

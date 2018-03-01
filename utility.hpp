@@ -2,6 +2,7 @@
 #define UTILITY_HPP
 
 #include <utility>
+#include <iterator>
 #include <type_traits>
 
 namespace tr::data_structures {
