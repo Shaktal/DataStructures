@@ -484,8 +484,8 @@ inline void inline_vector<T, Allocator>::push_back_range(InputIt first, InputIt 
                     reserve(this->d_capacity * RESIZE_FACTOR);
                 }
 
-                ::new (static_cast<void*>(this->d_buffer + this->d_size))
-                    T(*first);
+                std::allocator_traits<Allocator>::construct(*this, this->d_buffer + this->d_size,
+                    *first);
                 ++this->d_size;
 
                 ++first, ++count;
@@ -496,8 +496,8 @@ inline void inline_vector<T, Allocator>::push_back_range(InputIt first, InputIt 
             std::for_each(
                 this->d_buffer + this->d_size - count,
                 this->d_buffer + this->d_size, 
-                [](T& obj) noexcept {
-                    obj.~T();
+                [this](T& obj) noexcept {
+                    std::allocator_traits<Allocator>::destroy(*this, std::addressof(obj));
                 }
             );
 
