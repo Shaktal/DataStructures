@@ -5,6 +5,7 @@
 #include <utility.hpp>
 
 #include <memory>
+#include <vector>
 
 namespace tr::data_structures {
 
@@ -21,11 +22,11 @@ class inline_vector : private Allocator
 
 public: // Types
     using value_type = span<T>;
-    using reference = span<T>;
-    using const_reference = span<const T>;
+    using reference = const span<T>&;
+    using const_reference = const span<const T>&;
 
-    using iterator = inline_vector_iterator<T>;
-    using const_iterator = inline_vector_iterator<const T>;
+    using iterator = const span<T>*;
+    using const_iterator = const span<const T>*;
     using reverse_iterator = std::reverse_iterator<iterator>;
     using const_reverse_iterator = std::reverse_iterator<const iterator>;
 
@@ -129,7 +130,7 @@ private: // Helper variables
     static constexpr size_type RESIZE_FACTOR = 2u;
 
 private:
-    using Block = std::pair<size_type, size_type>; // Pair of [start_pos, length]
+    using Block = std::span<T>;
     using BlockManager = std::vector<Block, ReboundAlloc<Block>>;
     BlockManager        d_blockManager;
 
@@ -204,6 +205,41 @@ inline typename inline_vector<T, Allocator>::size_type inline_vector<T, Allocato
     return std::allocator_traits<Allocator>::max_size(*this);
 }
 
+template <typename T, typename Allocator>
+inline void inline_vector<T, Allocator>::reserve(size_type new_cap) 
+{
+    if (new_cap < this->capacity) return;
+
+    this->d_blockManager.reserve(this->d_blockManager.capacity() 
+        + (new_cap - this->capacity));
+
+    T* newBuff = std::allocator_traits<Allocator>::allocate(*this,
+        new_cap);
+
+    try {
+        safe_uninitialized_copy(make_move_iterator_if_noexcept(this->d_buffer),
+            make_move_iterator_if_noexcept(this->d_buffer + this->d_size),
+            newBuff, static_cast<Allocator&>(*this));
+        std::swap(d_buffer, newBuff);
+        std::for_each(newBuff, newBuff + this->d_size, [this](T& obj) noexcept {
+            std::allocator_traits<Allocator>::destroy(*this, std::addressof(obj));
+        });
+        std::for_each(this->d_blockManager.begin(), this->d_blockManager.end(),
+            [this, newBuff](Block& block) noexcept {
+                block = Block{this->d_buffer + (block.data() - newBuff),
+                              block.length()};
+            }
+        );
+        std::allocator_traits<Allocator>::deallocate(*this, newBuff, this->d_capacity);
+        this->d_capacity = new_cap;
+    }
+    catch (...)
+    {
+        std::allocator_traits<Allocator>::deallocate(*this, newBuff, new_cap);
+        throw;
+    }
+}
+
 // Element Access
 template <typename T, typename Allocator>
 inline typename inline_vector<T, Allocator>::reference 
@@ -226,8 +262,7 @@ inline typename inline_vector<T, Allocator>::reference
     inline_vector<T, Allocator>::operator[](size_type index) noexcept
 {
     assert(index < this->d_blockManager.size());
-    auto [start_pos, length] = this->d_blockManager[index];
-    return {this->d_buffer + start_pos, length};
+    return this->d_blockManager[index];
 }
 
 template <typename T, typename Allocator>
@@ -235,8 +270,7 @@ inline typename inline_vector<T, Allocator>::const_reference
     inline_vector<T, Allocator>::operator[](size_type index) const noexcept
 {
     assert(index < this->d_blockManager.size());
-    auto [start_pos, length] = this->d_blockManager[index];
-    return {this->d_buffer + start_pos, length};
+    return this->d_blockManager[index];
 }
 
 template <typename T, typename Allocator>
@@ -244,7 +278,7 @@ inline typename inline_vector<T, Allocator>::reference
     inline_vector<T, Allocator>::front() noexcept
 {
     assert(!this->empty());
-    return this->operator[](0u);
+    return this->d_blockManager[index];
 }
 
 template <typename T, typename Allocator>
@@ -272,8 +306,91 @@ inline typename inline_vector<T, Allocator>::const_reference
 }
 
 // Iterators
-// TODO: Implement once data_structures::inline_vector_iterator is
-//       implemented.
+template <typename T, typename Allocator>
+inline typename inline_vector<T, Allocator>::iterator inline_vector<T, Allocator>::begin()
+    noexcept
+{
+    return const_cast<const span<T>*>(this->d_blockManager.data());
+}
+
+template <typename T, typename Allocator>
+inline typename inline_vector<T, Allocator>::const_iterator inline_vector<T, Allocator>::begin()
+    const noexcept
+{
+    return this->cbegin();
+}
+
+template <typename T, typename Allocator>
+inline typename inline_vector<T, Allocator>::const_iterator inline_vector<T, Allocator>::cbegin()
+    const noexcept
+{
+    return const_cast<const span<const T>*>(this->d_blockManager.data());
+}
+
+template <typename T, typename Allocator>
+inline typename inline_vector<T, Allocator>::iterator inline_vector<T, Allocator>::end()
+    noexcept
+{
+    return const_cast<const span<T>*>(this->d_blockManager.data()) 
+        + this->d_blockManager.size();
+}
+
+template <typename T, typename Allocator>
+inline typename inline_vector<T, Allocator>::const_iterator inline_vector<T, Allocator>::end()
+    const noexcept
+{
+    return this->cend();
+}
+
+template <typename T, typename Allocator>
+inline typename inline_vector<T, Allocator>::const_iterator inline_vector<T, Allocator>::cend()
+    const noexcept
+{
+    return const_cast<const span<const T>*>(this->d_blockManager.data())
+        + this->d_blockManager.size();
+}
+
+template <typename T, typename Allocator>
+inline typename inline_vector<T, Allocator>::reverse_iterator inline_vector<T, Allocator>::rbegin()
+    noexcept
+{
+    return reverse_iterator{this->end()};
+}
+
+template <typename T, typename Allocator>
+inline typename inline_vector<T, Allocator>::const_reverse_iterator 
+    inline_vector<T, Allocator>::rbegin() const noexcept
+{
+    return this->crbegin();
+}
+
+template <typename T, typename Allocator>
+inline typename inline_vector<T, Allocator>::const_reverse_iterator 
+    inline_vector<T, Allocator>::crbegin() const noexcept
+{
+    return reverse_iterator{this->cend()};
+}
+
+template <typename T, typename Allocator>
+inline typename inline_vector<T, Allocator>::reverse_iterator inline_vector<T, Allocator>::rend()
+    noexcept
+{
+    return reverse_iterator{this->begin()};
+}
+
+template <typename T, typename Allocator>
+inline typename inline_vector<T, Allocator>::const_reverse_iterator 
+    inline_vector<T, Allocator>::rend() const noexcept
+{
+    return this->crend();
+}
+
+template <typename T, typename Allocator>
+inline typename inline_vector<T, Allocator>::const_reverse_iterator 
+    inline_vector<T, Allocator>::crend() const noexcept
+{
+    return reverse_iterator{this->cbegin()};
+}
 
 // Modifiers
 template <typename T, typename Allocator>
@@ -281,8 +398,31 @@ inline void inline_vector<T, Allocator>::clear()
 {
     this->d_blockManager.clear();
     std::for_each(this->d_buffer, this->d_buffer + this->d_size,
-        [](T& obj) { obj.~T(); });
+        [this](T& obj) noexcept { 
+            std::allocator_traits<Allocator>::destroy(*this, std::addressof(obj)); 
+        });
     this->d_size = 0u;
+}
+
+template <typename T, typename Allocator>
+inline typename inline_vector<T, Allocator>::iterator inline_vector<T, Allocator>::erase_range(
+    const_iterator pos)
+{
+    Block block{const_cast<T*>(pos->data()), pos->length()};
+    std::for_each(block.begin(), block.end(), [this](T& obj) noexcept {
+        std::allocator_traits<Allocator>::destroy(*this, std::addressof(obj));
+    });
+    std::copy(make_move_iterator_if_noexcept(pos->data() + pos->length()),
+        make_move_iterator_if_noexcept(this->d_buffer + this->size()),
+        pos->data());
+    
+    std::ptrdiff_t offset = const_cast<Block*>(pos) - this->d_blockManager.data();
+    std::for_each(this->d_blockManager.begin() + offset, this->d_blockManager.end(),
+        [](Block& block) noexcept {
+            block = Block{block.data() - pos.length(), block.length()};
+        }
+    );
+    return this->d_blockManager.erase(this->d_blockManager.begin() + offset);
 }
 
 template <typename T, typename Allocator>
@@ -293,7 +433,7 @@ inline void inline_vector<T, Allocator>::push_back_range(span<std::remove_const_
         reserve(this->d_capacity * RESIZE_FACTOR);
     }
 
-    this->d_blockManager.emplace_back(this->d_size, range.length());
+    this->d_blockManager.emplace_back(this->d_buffer + this->d_size, range.length());
 
     try {
         std::uninitialized_copy(range.begin(), range.end(), this->d_buffer + this->d_size);
@@ -320,7 +460,7 @@ inline void inline_vector<T, Allocator>::push_back_range(InputIt first, InputIt 
             reserve(this->d_capacity * RESIZE_FACTOR);
         }
 
-        this->d_blockManager.emplace_back(this->d_size, length);
+        this->d_blockManager.emplace_back(this->d_buffer + this->d_size, length);
 
         try {
             std::uninitialized_copy(first, last, this->d_buffer + this->d_size);
@@ -341,7 +481,7 @@ inline void inline_vector<T, Allocator>::push_back_range(InputIt first, InputIt 
             {
                 if (this->d_size == this->d_capacity)
                 {
-                    resize(this->d_capacity * RESIZE_FACTOR);
+                    reserve(this->d_capacity * RESIZE_FACTOR);
                 }
 
                 ::new (static_cast<void*>(this->d_buffer + this->d_size))
@@ -375,7 +515,10 @@ inline void inline_vector<T, Allocator>::pop_back_range() noexcept
     auto [start_pos, length] = this->d_blockManager.back();
 
     std::for_each(this->d_buffer + start_pos, this->d_buffer + start_pos + length,
-        [](T& obj) noexcept { obj.~T(); });
+        [this](T& obj) noexcept { 
+            std::allocator_traits<Allocator>::destroy(*this, std::addressof(obj)); 
+        }
+    );
 
     this->d_blockManager.pop_back();
     this->d_size = start_pos;

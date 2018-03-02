@@ -35,6 +35,52 @@ using at_least_forward_iterator_t = typename at_least_forward_iterator<Iterator>
 template <typename Iterator>
 inline constexpr bool at_least_forward_iterator_v = at_least_forward_iterator<Iterator>::value;
 
+// Version of uninitialized_copy which takes into account the allocator
+// `construct` function:
+template <typename InputIt, typename FwdIt, typename Allocator>
+inline safe_uninitialized_copy(InputIt first, InputIt last, 
+    FwdIt output, Allocator& alloc)
+{
+    if constexpr (std::is_same_v<Allocator, 
+        std::allocator<std::allocator_traits<Allocator>::value_type>>)
+    {
+        std::uninitialized_copy(first, last, output);
+    }
+    else
+    {
+        FwdIt tmp{output};
+        try {
+            while (first != last)
+            {
+                std::allocator_traits<Allocator>::construct(alloc, std::addressof(*tmp), *first);
+                ++first, ++tmp;
+            }
+        }
+        catch (...) {
+            while (output != tmp)
+            {
+                std::allocator_traits<Allocator>::destroy(alloc, std::addressof(*output));
+                ++output;
+            }
+        }
+    }
+}
+
+// Utility to make a `move_iterator` if the type is a non-fundamental type
+// with a `noexcept` move constructor, else return the provided iterator.
+template <typename FwdIt>
+constexpr auto make_move_iterator_if_noexcept(FwdIt it) noexcept
+    -> std::conditional_t<!std::is_fundamental_v<typename std::iterator_traits<FwdIt>::value_type>
+        && std::is_nothrow_move_constructible_v<typename std::iterator_traits<FwdIt>::value_type>,
+        std::move_iterator<FwdIt>, FwdIt>
+{
+    using ResultType = std::conditional_t<!std::is_fundamental_v<typename std::iterator_traits<FwdIt>::value_type>
+        && std::is_nothrow_move_constructible_v<typename std::iterator_traits<FwdIt>::value_type>,
+        std::move_iterator<FwdIt>, FwdIt>;
+
+    return ResultType{it};
+}
+
 } // close namespace tr::data_structures
 
 #endif // UTILITY_HPP
