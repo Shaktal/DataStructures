@@ -9,7 +9,7 @@
 
 namespace tr::data_structures {
 
-template <typename T, typename Allocator>
+template <typename T, typename Allocator = std::allocator<T>>
 class inline_vector : private Allocator
 {
     // This class is a vector of sequences that
@@ -106,15 +106,15 @@ public: // Modifiers
     void clear();
 
     iterator erase_range(const_iterator pos);
-    iterator erase_range(const_iterator first, const_iterator last);
+    // iterator erase_range(const_iterator first, const_iterator last);
 
-    iterator insert_range(const_iterator pos, span<std::remove_const_t<T>> range);
-    template <typename InputIt>
-    iterator insert_range(const_iterator pos, InputIt first, InputIt last);
+    // iterator insert_range(const_iterator pos, span<std::remove_const_t<T>> range);
+    // template <typename InputIt>
+    // iterator insert_range(const_iterator pos, InputIt first, InputIt last);
 
-    iterator insert_ranges(const_iterator pos, std::initializer_list<std::remove_const_t<T>> ranges);
-    template <typename InputIt>
-    iterator insert_ranges(const_iterator pos, InputIt first, InputIt last);
+    // iterator insert_ranges(const_iterator pos, std::initializer_list<std::remove_const_t<T>> ranges);
+    // template <typename InputIt>
+    // iterator insert_ranges(const_iterator pos, InputIt first, InputIt last);
 
     void push_back_range(span<std::remove_const_t<T>> range);
     template <typename InputIt>
@@ -436,7 +436,8 @@ inline void inline_vector<T, Allocator>::push_back_range(span<std::remove_const_
     this->d_blockManager.emplace_back(this->d_buffer + this->d_size, range.length());
 
     try {
-        std::uninitialized_copy(range.begin(), range.end(), this->d_buffer + this->d_size);
+        safe_uninitialized_copy(range.begin(), range.end(), this->d_buffer + this->d_size,
+            static_cast<Allocator&>(*this));
     }
     catch (...)
     {
