@@ -39,6 +39,9 @@ public: // Constructors
     template <std::size_t N>
     constexpr span(const std::array<std::remove_const_t<T>, N>& arr) noexcept;
     constexpr span(const span& other) noexcept;
+    template <typename OtherType, 
+        typename = std::enable_if_t<std::is_convertible_v<T(*)[], OtherType(*)[]>>>
+    constexpr span(const span<OtherType>& other) noexcept;
     ~span() = default;
 
 public: // Assignment
@@ -90,6 +93,10 @@ public: // Conversion
 
     template <typename U = T>
     constexpr std::enable_if_t<!std::is_const_v<U>, span<std::byte>> as_writable_bytes() noexcept;
+
+private: // Friends
+    template <typename OtherType>
+    friend class span;
 
 private: // Members
     T*          d_begin;
@@ -153,12 +160,21 @@ inline constexpr span<T>::span(const span& other) noexcept
     , d_end(other.d_end)
 {}
 
+// TODO: Fix
+template <typename T>
+template <typename OtherType, typename>
+inline constexpr span<T>::span(const span<OtherType>& other) noexcept
+    : d_begin((T*)(other.d_begin))
+    , d_end((T*)(other.d_end))
+{}
+
 // Assignment
 template <typename T>
 inline constexpr span<T>& span<T>::operator=(const span& other) noexcept
 {
     d_begin = other.d_begin;
     d_end = other.d_end;
+    return *this;
 }
 
 // Accessors

@@ -4,6 +4,7 @@
 #include <span.hpp>
 #include <utility.hpp>
 
+#include <algorithm>
 #include <memory>
 #include <vector>
 
@@ -38,7 +39,7 @@ public: // Types
 public: // Constructors
     inline_vector() noexcept(std::is_nothrow_default_constructible_v<Allocator>);
     explicit inline_vector(const Allocator& alloc) noexcept;
-    inline_vector(const inline_vector& other, const Allocator& alloc);
+    inline_vector(const inline_vector& other, const Allocator& alloc = Allocator{});
     inline_vector(inline_vector&& other) noexcept;
     inline_vector(inline_vector&& other, const Allocator& alloc);
 
@@ -64,7 +65,7 @@ public: // Capacity
     [[nodiscard]] size_type capacity() const noexcept;
 
     // This returns the number of elements (ranges) in the container.
-    [[nodiscard]] size_type num_elements() const noexcept;
+    [[nodiscard]] size_type num_ranges() const noexcept;
 
     // This returns the maximum size that the container can grow to.
     [[nodiscard]] size_type max_size() const noexcept;
@@ -77,7 +78,7 @@ public: // Element Access
     [[nodiscard]] const_reference operator[](size_type index) const noexcept;
 
     [[nodiscard]] reference at(size_type index);
-    [[nodiscard]] const_reference at(size_type index) const noexcept;
+    [[nodiscard]] const_reference at(size_type index) const;
 
     [[nodiscard]] reference front() noexcept;
     [[nodiscard]] const_reference front() const noexcept;
@@ -116,21 +117,21 @@ public: // Modifiers
     // template <typename InputIt>
     // iterator insert_ranges(const_iterator pos, InputIt first, InputIt last);
 
-    void push_back_range(span<std::remove_const_t<T>> range);
+    void push_back_range(span<std::add_const_t<T>> range);
     template <typename InputIt>
     void push_back_range(InputIt first, InputIt last);
 
     void pop_back_range() noexcept;
 
 private: // Private Types
-    template <typename T>
-    using ReboundAlloc = typename std::allocator_traits<Allocator>::template rebind_alloc<T>;
+    template <typename U>
+    using ReboundAlloc = typename std::allocator_traits<Allocator>::template rebind_alloc<U>;
 
 private: // Helper variables
     static constexpr size_type RESIZE_FACTOR = 2u;
 
 private:
-    using Block = std::span<T>;
+    using Block = span<T>;
     using BlockManager = std::vector<Block, ReboundAlloc<Block>>;
     BlockManager        d_blockManager;
 
@@ -152,11 +153,27 @@ inline inline_vector<T, Allocator>::inline_vector()
 
 template <typename T, typename Allocator>
 inline inline_vector<T, Allocator>::inline_vector(const Allocator& alloc) noexcept
-    : d_blockManager(alloc)
+    : Allocator(alloc)
+    , d_blockManager(alloc)
     , d_buffer(nullptr)
     , d_size(0u)
     , d_capacity(0u)
 {}
+
+template <typename T, typename Allocator>
+inline inline_vector<T, Allocator>::inline_vector(const inline_vector& other, 
+    const Allocator& alloc)
+    : Allocator(alloc)
+    , d_blockManager(alloc)
+    , d_buffer(nullptr)
+    , d_size(0u)
+    , d_capacity(0u)
+{
+    this->reserve(other.d_size);
+    std::for_each(other.cbegin(), other.cend(), [this](const auto& block) {
+        push_back_range(block);
+    });
+}
 
 template <typename T, typename Allocator>
 inline inline_vector<T, Allocator>::inline_vector(inline_vector&& other) noexcept
@@ -192,7 +209,14 @@ inline typename inline_vector<T, Allocator>::size_type inline_vector<T, Allocato
 }
 
 template <typename T, typename Allocator>
-inline typename inline_vector<T, Allocator>::size_type inline_vector<T, Allocator>::num_elements()
+inline typename inline_vector<T, Allocator>::size_type inline_vector<T, Allocator>::capacity()
+    const noexcept
+{
+    return this->d_capacity;
+}
+
+template <typename T, typename Allocator>
+inline typename inline_vector<T, Allocator>::size_type inline_vector<T, Allocator>::num_ranges()
     const noexcept
 {
     return this->d_blockManager.size();
@@ -208,10 +232,10 @@ inline typename inline_vector<T, Allocator>::size_type inline_vector<T, Allocato
 template <typename T, typename Allocator>
 inline void inline_vector<T, Allocator>::reserve(size_type new_cap) 
 {
-    if (new_cap < this->capacity) return;
+    if (new_cap <= this->d_capacity) return;
 
     this->d_blockManager.reserve(this->d_blockManager.capacity() 
-        + (new_cap - this->capacity));
+        + (new_cap - this->d_capacity));
 
     T* newBuff = std::allocator_traits<Allocator>::allocate(*this,
         new_cap);
@@ -278,7 +302,7 @@ inline typename inline_vector<T, Allocator>::reference
     inline_vector<T, Allocator>::front() noexcept
 {
     assert(!this->empty());
-    return this->d_blockManager[index];
+    return this->operator[](0u);
 }
 
 template <typename T, typename Allocator>
@@ -310,7 +334,7 @@ template <typename T, typename Allocator>
 inline typename inline_vector<T, Allocator>::iterator inline_vector<T, Allocator>::begin()
     noexcept
 {
-    return const_cast<const span<T>*>(this->d_blockManager.data());
+    return this->d_blockManager.data();
 }
 
 template <typename T, typename Allocator>
@@ -324,7 +348,7 @@ template <typename T, typename Allocator>
 inline typename inline_vector<T, Allocator>::const_iterator inline_vector<T, Allocator>::cbegin()
     const noexcept
 {
-    return const_cast<const span<const T>*>(this->d_blockManager.data());
+    return reinterpret_cast<const span<const T>*>(this->d_blockManager.data());
 }
 
 template <typename T, typename Allocator>
@@ -346,7 +370,7 @@ template <typename T, typename Allocator>
 inline typename inline_vector<T, Allocator>::const_iterator inline_vector<T, Allocator>::cend()
     const noexcept
 {
-    return const_cast<const span<const T>*>(this->d_blockManager.data())
+    return reinterpret_cast<const span<const T>*>(this->d_blockManager.data())
         + this->d_blockManager.size();
 }
 
@@ -418,19 +442,20 @@ inline typename inline_vector<T, Allocator>::iterator inline_vector<T, Allocator
     
     std::ptrdiff_t offset = const_cast<Block*>(pos) - this->d_blockManager.data();
     std::for_each(this->d_blockManager.begin() + offset, this->d_blockManager.end(),
-        [](Block& block) noexcept {
-            block = Block{block.data() - pos.length(), block.length()};
+        [pos](Block& block) noexcept {
+            block = Block{block.data() - pos->length(), block.length()};
         }
     );
     return this->d_blockManager.erase(this->d_blockManager.begin() + offset);
 }
 
 template <typename T, typename Allocator>
-inline void inline_vector<T, Allocator>::push_back_range(span<std::remove_const_t<T>> range)
+inline void inline_vector<T, Allocator>::push_back_range(span<std::add_const_t<T>> range)
 {
-    if (this->d_capacity - this->d_size < range.length())
+    if ((this->d_capacity - this->d_size) < range.length())
     {
-        reserve(this->d_capacity * RESIZE_FACTOR);
+        reserve(std::max(this->d_capacity * RESIZE_FACTOR + 1u, 
+            this->d_capacity + range.length()));
     }
 
     this->d_blockManager.emplace_back(this->d_buffer + this->d_size, range.length());
@@ -452,13 +477,13 @@ template <typename T, typename Allocator>
 template <typename InputIt>
 inline void inline_vector<T, Allocator>::push_back_range(InputIt first, InputIt last)
 {
-    if constexpr (utility::at_least_forward_iterator_v<InputIt>)
+    if constexpr (at_least_forward_iterator_v<InputIt>)
     {
         size_type length = std::distance(first, last);
 
-        if (this->d_capacity - this->d_size < range.length())
+        if ((this->d_capacity - this->d_size) < length)
         {
-            reserve(this->d_capacity * RESIZE_FACTOR);
+            reserve(std::max(this->d_capacity * RESIZE_FACTOR + 1u, this->d_capacity + length));
         }
 
         this->d_blockManager.emplace_back(this->d_buffer + this->d_size, length);
@@ -482,7 +507,7 @@ inline void inline_vector<T, Allocator>::push_back_range(InputIt first, InputIt 
             {
                 if (this->d_size == this->d_capacity)
                 {
-                    reserve(this->d_capacity * RESIZE_FACTOR);
+                    reserve(this->d_capacity * RESIZE_FACTOR + 1u);
                 }
 
                 std::allocator_traits<Allocator>::construct(*this, this->d_buffer + this->d_size,

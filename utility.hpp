@@ -3,6 +3,8 @@
 
 #include <utility>
 #include <iterator>
+#include <memory>
+#include <new>
 #include <type_traits>
 
 namespace tr::data_structures {
@@ -38,11 +40,11 @@ inline constexpr bool at_least_forward_iterator_v = at_least_forward_iterator<It
 // Version of uninitialized_copy which takes into account the allocator
 // `construct` function:
 template <typename InputIt, typename FwdIt, typename Allocator>
-inline safe_uninitialized_copy(InputIt first, InputIt last, 
+inline void safe_uninitialized_copy(InputIt first, InputIt last, 
     FwdIt output, Allocator& alloc)
 {
     if constexpr (std::is_same_v<Allocator, 
-        std::allocator<std::allocator_traits<Allocator>::value_type>>)
+        std::allocator<typename std::allocator_traits<Allocator>::value_type>>)
     {
         std::uninitialized_copy(first, last, output);
     }
