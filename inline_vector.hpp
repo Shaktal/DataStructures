@@ -39,7 +39,8 @@ public: // Types
 public: // Constructors
     inline_vector() noexcept(std::is_nothrow_default_constructible_v<Allocator>);
     explicit inline_vector(const Allocator& alloc) noexcept;
-    inline_vector(const inline_vector& other, const Allocator& alloc = Allocator{});
+    inline_vector(const inline_vector& other);
+    inline_vector(const inline_vector& other, const Allocator& alloc);
     inline_vector(inline_vector&& other) noexcept;
     inline_vector(inline_vector&& other, const Allocator& alloc);
 
@@ -159,6 +160,21 @@ inline inline_vector<T, Allocator>::inline_vector(const Allocator& alloc) noexce
     , d_size(0u)
     , d_capacity(0u)
 {}
+
+template <typename T, typename Allocator>
+inline inline_vector<T, Allocator>::inline_vector(const inline_vector& other)
+    : Allocator(std::allocator_traits<allocator_type>::select_on_container_copy_construction(
+        other.get_allocator()))
+    , d_blockManager(*this)
+    , d_buffer(nullptr)
+    , d_size(0u)
+    , d_capacity(0u)
+{
+    this->reserve(other.d_size);
+    std::for_each(other.cbegin(), other.cend(), [this](const auto& block) {
+        push_back_range(block);
+    });
+}
 
 template <typename T, typename Allocator>
 inline inline_vector<T, Allocator>::inline_vector(const inline_vector& other, 
