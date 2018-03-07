@@ -85,6 +85,7 @@ public: // Iterators
     constexpr const_reverse_iterator crend() const noexcept;
 
 public: // Capacity
+    constexpr bool empty() const noexcept;
     constexpr size_type size() const noexcept;
     constexpr size_type length() const noexcept;
 
@@ -329,9 +330,15 @@ inline constexpr typename span<T>::const_reverse_iterator span<T>::crend() const
 
 // Capacity
 template <typename T>
+inline constexpr bool span<T>::empty() const noexcept
+{
+    return this->d_end == this->d_begin;
+}
+
+template <typename T>
 inline constexpr typename span<T>::size_type span<T>::size() const noexcept
 {
-    return (this->d_end - this->d_begin);
+    return this->d_end - this->d_begin;
 }
 
 template <typename T>
