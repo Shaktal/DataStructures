@@ -215,11 +215,12 @@ TEST(InlineVector, erase_first_element)
     vec.push_back_range(arr1);
     vec.push_back_range(arr2);
     vec.push_back_range(arr3);
-    vec.erase_range(vec.begin());
+    auto it = vec.erase_range(vec.begin());
 
     using namespace ::testing;
     ASSERT_THAT(vec.num_ranges(), Eq(2u));
     EXPECT_THAT(vec, ElementsAre(ElementsAre(10, 20, 30, 40, -50), ElementsAre(10000)));
+    EXPECT_THAT(*it, ElementsAre(10, 20, 30, 40, -50));
 }
 
 TEST(InlineVector, erase_middle_element)
@@ -232,11 +233,12 @@ TEST(InlineVector, erase_middle_element)
     vec.push_back_range(arr1);
     vec.push_back_range(arr2);
     vec.push_back_range(arr3);
-    vec.erase_range(vec.begin() + 1u);
+    auto it = vec.erase_range(vec.begin() + 1u);
 
     using namespace ::testing;
     ASSERT_THAT(vec.num_ranges(), Eq(2u));
     EXPECT_THAT(vec, ElementsAre(ElementsAre(-1, 0, 1), ElementsAre(10000)));
+    EXPECT_THAT(*it, ElementsAre(10000));
 }
 
 TEST(InlineVector, erase_end_element)
@@ -249,9 +251,70 @@ TEST(InlineVector, erase_end_element)
     vec.push_back_range(arr1);
     vec.push_back_range(arr2);
     vec.push_back_range(arr3);
-    vec.erase_range(vec.begin() + 2u);
+    auto it = vec.erase_range(vec.begin() + 2u);
 
     using namespace ::testing;
     ASSERT_THAT(vec.num_ranges(), Eq(2u));
     EXPECT_THAT(vec, ElementsAre(ElementsAre(-1, 0, 1), ElementsAre(10, 20, 30, 40, -50)));
+    EXPECT_THAT(it, Eq(vec.end()));
+}
+
+TEST(InlineVector, erase_beginning_range)
+{
+    constexpr std::array<int, 3u> arr1 = {-1, 0, 1};
+    constexpr std::array<int, 5u> arr2 = {10, 20, 30, 40, -50};
+    constexpr std::array<int, 1u> arr3 = {10000};
+    constexpr std::array<int, 2u> arr4 = {-2, 2};
+    data_structures::inline_vector<int> vec;
+
+    vec.push_back_range(arr1);
+    vec.push_back_range(arr2);
+    vec.push_back_range(arr3);
+    vec.push_back_range(arr4);
+    auto it = vec.erase_range(vec.begin(), vec.begin() + 2u);
+
+    using namespace ::testing;
+    ASSERT_THAT(vec.num_ranges(), Eq(2u));
+    EXPECT_THAT(vec, ElementsAre(ElementsAre(10000), ElementsAre(-2, 2)));
+    EXPECT_THAT(*it, ElementsAre(10000));
+}
+
+TEST(InlineVector, erase_middle_range)
+{
+    constexpr std::array<int, 3u> arr1 = {-1, 0, 1};
+    constexpr std::array<int, 5u> arr2 = {10, 20, 30, 40, -50};
+    constexpr std::array<int, 1u> arr3 = {10000};
+    constexpr std::array<int, 2u> arr4 = {-2, 2};
+    data_structures::inline_vector<int> vec;
+
+    vec.push_back_range(arr1);
+    vec.push_back_range(arr2);
+    vec.push_back_range(arr3);
+    vec.push_back_range(arr4);
+    auto it = vec.erase_range(vec.begin() + 1u, vec.begin() + 3u);
+
+    using namespace ::testing;
+    ASSERT_THAT(vec.num_ranges(), Eq(2u));
+    EXPECT_THAT(vec, ElementsAre(ElementsAre(-1, 0, 1), ElementsAre(-2, 2)));
+    EXPECT_THAT(*it, ElementsAre(-2, 2));
+}
+
+TEST(InlineVector, erase_end_range)
+{
+    constexpr std::array<int, 3u> arr1 = {-1, 0, 1};
+    constexpr std::array<int, 5u> arr2 = {10, 20, 30, 40, -50};
+    constexpr std::array<int, 1u> arr3 = {10000};
+    constexpr std::array<int, 2u> arr4 = {-2, 2};
+    data_structures::inline_vector<int> vec;
+
+    vec.push_back_range(arr1);
+    vec.push_back_range(arr2);
+    vec.push_back_range(arr3);
+    vec.push_back_range(arr4);
+    auto it = vec.erase_range(vec.begin() + 2u, vec.end());
+
+    using namespace ::testing;
+    ASSERT_THAT(vec.num_ranges(), Eq(2u));
+    EXPECT_THAT(vec, ElementsAre(ElementsAre(-1, 0, 1), ElementsAre(10, 20, 30, 40, -50)));
+    EXPECT_THAT(it, Eq(vec.end()));
 }

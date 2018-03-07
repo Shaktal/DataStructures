@@ -109,7 +109,7 @@ public: // Modifiers
     void clear();
 
     iterator erase_range(const_iterator pos);
-    // iterator erase_range(const_iterator first, const_iterator last);
+    iterator erase_range(const_iterator first, const_iterator last);
 
     // iterator insert_range(const_iterator pos, span<std::remove_const_t<T>> range);
     // template <typename InputIt>
@@ -470,8 +470,52 @@ inline typename inline_vector<T, Allocator>::iterator inline_vector<T, Allocator
     }
     else
     {
-        offset = std::distance(this->d_blockManager.begin(),
-            this->d_blockManager.erase(this->d_blockManager.begin() + offset));
+        auto it = this->d_blockManager.erase(this->d_blockManager.begin() + offset);
+        offset = std::distance(this->d_blockManager.begin(), it);
+        return this->d_blockManager.data() + offset;
+    }
+}
+
+template <typename T, typename Allocator>
+inline typename inline_vector<T, Allocator>::iterator inline_vector<T, Allocator>::erase_range(
+    const_iterator first, const_iterator last)
+{
+    if (first == last) return first;
+    auto effectiveLast = last - 1u;
+
+    Block block{const_cast<T*>(first->data()), (effectiveLast->data() - first->data()) + effectiveLast->length()};
+    std::for_each(block.begin(), block.end(), [this](T& obj) noexcept {
+        std::allocator_traits<Allocator>::destroy(*this, std::addressof(obj));
+    });
+
+    std::copy(make_move_iterator_if_noexcept(block.data() + block.length()),
+        make_move_iterator_if_noexcept(this->d_buffer + this->size()),
+        block.data());
+
+    std::ptrdiff_t offset = std::distance(this->d_blockManager.data(), const_cast<Block*>(first));
+    std::for_each(this->d_blockManager.begin() + offset, this->d_blockManager.end(),
+        [block](Block& existingBlock) noexcept {
+            existingBlock = Block{existingBlock.data() - block.length(), 
+                existingBlock.length()};
+        }
+    );
+
+    if constexpr (std::is_convertible_v<decltype(this->d_blockManager.begin()), iterator>)
+    {
+        return this->d_blockManager.erase(
+            this->d_blockManager.begin() + offset,
+            this->d_blockManager.begin() + offset 
+                + std::distance(first, last)
+        );
+    }
+    else
+    {
+        auto it = this->d_blockManager.erase(
+            this->d_blockManager.begin() + offset,
+            this->d_blockManager.begin() + offset 
+                + std::distance(first, last)
+        );
+        offset = std::distance(this->d_blockManager.begin(), it);
         return this->d_blockManager.data() + offset;
     }
 }
