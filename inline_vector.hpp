@@ -453,9 +453,9 @@ inline typename inline_vector<T, Allocator>::iterator inline_vector<T, Allocator
     std::for_each(block.begin(), block.end(), [this](T& obj) noexcept {
         std::allocator_traits<Allocator>::destroy(*this, std::addressof(obj));
     });
-    std::copy(make_move_iterator_if_noexcept(pos->data() + pos->length()),
+    std::copy(make_move_iterator_if_noexcept(block.data() + block.length()),
         make_move_iterator_if_noexcept(this->d_buffer + this->size()),
-        pos->data());
+        block.data());
     
     std::ptrdiff_t offset = const_cast<Block*>(pos) - this->d_blockManager.data();
     std::for_each(this->d_blockManager.begin() + offset, this->d_blockManager.end(),
@@ -463,7 +463,17 @@ inline typename inline_vector<T, Allocator>::iterator inline_vector<T, Allocator
             block = Block{block.data() - pos->length(), block.length()};
         }
     );
-    return this->d_blockManager.erase(this->d_blockManager.begin() + offset);
+
+    if constexpr (std::is_convertible_v<decltype(this->d_blockManager.begin()), iterator>)
+    {
+        return this->d_blockManager.erase(this->d_blockManager.begin() + offset);
+    }
+    else
+    {
+        offset = std::distance(this->d_blockManager.begin(),
+            this->d_blockManager.erase(this->d_blockManager.begin() + offset));
+        return this->d_blockManager.data() + offset;
+    }
 }
 
 template <typename T, typename Allocator>
