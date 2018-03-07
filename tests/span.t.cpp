@@ -120,3 +120,13 @@ TEST(Span, subspan_works_correctly)
     EXPECT_THAT(sp.subspan(2u), ElementsAre(3, 4, 5, 6));
     EXPECT_THAT(sp.subspan(4u, 1u), ElementsAre(5));
 }
+
+TEST(Span, can_copy_from_const_to_non_const_span)
+{
+    int arr[] = {1, 2, 3, 4, 5};
+    data_structures::span<int> sp1(arr);
+    data_structures::span<const int> sp2(sp1);
+
+    using namespace ::testing;
+    EXPECT_THAT(sp2, ElementsAreArray(sp1.cbegin(), sp1.cend()));
+}
