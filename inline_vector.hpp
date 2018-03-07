@@ -24,7 +24,7 @@ class inline_vector : private Allocator
 public: // Types
     using value_type = span<T>;
     using reference = const span<T>&;
-    using const_reference = const span<const T>&;
+    using const_reference = const span<T>&;
 
     using iterator = const span<T>*;
     using const_iterator = const span<T>*; // TODO: Work out how to allow this to prevent access
