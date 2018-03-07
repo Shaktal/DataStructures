@@ -37,6 +37,25 @@ using at_least_forward_iterator_t = typename at_least_forward_iterator<Iterator>
 template <typename Iterator>
 inline constexpr bool at_least_forward_iterator_v = at_least_forward_iterator<Iterator>::value;
 
+// Check to see if an `Iterator` is one of {InputIterator.
+// ForwardIterator, BidirectionalIterator, RandomAccessIterator}
+template <typename Iterator, typename = void>
+struct at_least_input_iterator : std::false_type {};
+
+template <typename Iterator>
+struct at_least_input_iterator<Iterator, std::enable_if_t<
+        at_least_forward_iterator_v<Iterator> || std::is_same_v<
+            typename std::iterator_traits<Iterator>::iterator_category,
+            std::input_iterator_tag
+        >
+    >> : std::true_type {};
+
+template <typename Iterator>
+using at_least_input_iterator_t = typename at_least_input_iterator<Iterator>::type;
+
+template <typename Iterator>
+inline constexpr bool at_least_input_iterator_v = at_least_input_iterator<Iterator>::value;
+
 // Version of uninitialized_copy which takes into account the allocator
 // `construct` function:
 template <typename InputIt, typename FwdIt, typename Allocator>

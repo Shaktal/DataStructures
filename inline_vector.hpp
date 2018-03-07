@@ -27,9 +27,10 @@ public: // Types
     using const_reference = const span<const T>&;
 
     using iterator = const span<T>*;
-    using const_iterator = const span<const T>*;
+    using const_iterator = const span<T>*; // TODO: Work out how to allow this to prevent access
+                                           // to the underlying `T` without violating strict-aliasing
     using reverse_iterator = std::reverse_iterator<iterator>;
-    using const_reverse_iterator = std::reverse_iterator<const iterator>;
+    using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
     using size_type = typename std::allocator_traits<Allocator>::size_type;
     using difference_type = typename std::iterator_traits<iterator>::difference_type;
@@ -171,7 +172,7 @@ inline inline_vector<T, Allocator>::inline_vector(const inline_vector& other)
     , d_capacity(0u)
 {
     this->reserve(other.d_size);
-    std::for_each(other.cbegin(), other.cend(), [this](const auto& block) {
+    std::for_each(other.cbegin(), other.cend(), [this](auto block) {
         push_back_range(block);
     });
 }
@@ -186,7 +187,7 @@ inline inline_vector<T, Allocator>::inline_vector(const inline_vector& other,
     , d_capacity(0u)
 {
     this->reserve(other.d_size);
-    std::for_each(other.cbegin(), other.cend(), [this](const auto& block) {
+    std::for_each(other.cbegin(), other.cend(), [this](auto block) {
         push_back_range(block);
     });
 }
@@ -364,7 +365,7 @@ template <typename T, typename Allocator>
 inline typename inline_vector<T, Allocator>::const_iterator inline_vector<T, Allocator>::cbegin()
     const noexcept
 {
-    return reinterpret_cast<const span<const T>*>(this->d_blockManager.data());
+    return this->d_blockManager.data();
 }
 
 template <typename T, typename Allocator>
@@ -386,7 +387,7 @@ template <typename T, typename Allocator>
 inline typename inline_vector<T, Allocator>::const_iterator inline_vector<T, Allocator>::cend()
     const noexcept
 {
-    return reinterpret_cast<const span<const T>*>(this->d_blockManager.data())
+    return this->d_blockManager.data()
         + this->d_blockManager.size();
 }
 

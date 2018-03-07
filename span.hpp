@@ -40,7 +40,7 @@ public: // Constructors
     constexpr span(const std::array<std::remove_const_t<T>, N>& arr) noexcept;
     constexpr span(const span& other) noexcept;
     template <typename OtherType, 
-        typename = std::enable_if_t<std::is_convertible_v<T(*)[], OtherType(*)[]>>>
+        typename = std::enable_if_t<std::is_convertible_v<OtherType(*)[], T(*)[]>>>
     constexpr span(const span<OtherType>& other) noexcept;
     ~span() = default;
 
