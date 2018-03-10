@@ -318,3 +318,69 @@ TEST(InlineVector, erase_end_range)
     EXPECT_THAT(vec, ElementsAre(ElementsAre(-1, 0, 1), ElementsAre(10, 20, 30, 40, -50)));
     EXPECT_THAT(it, Eq(vec.end()));
 }
+
+TEST(InlineVector, insert_range_at_end)
+{
+    constexpr std::array<int, 3u> arr1 = {-1, 0, 1};
+    constexpr std::array<int, 5u> arr2 = {10, 20, 30, 40, -50};
+    constexpr std::array<int, 1u> arr3 = {10000};
+    constexpr std::array<int, 2u> arr4 = {-2, 2};
+    data_structures::inline_vector<int> vec;
+
+    vec.push_back_range(arr1);
+    vec.push_back_range(arr2);
+    vec.push_back_range(arr3);
+    auto it = vec.insert_range(vec.cend(), arr4);
+
+    using namespace ::testing;
+    ASSERT_THAT(vec.num_ranges(), Eq(4u));
+    ASSERT_THAT(vec.size(), Eq(arr1.size() + arr2.size() + arr3.size() + arr4.size()));
+    ASSERT_THAT(vec.capacity(), Ge(arr1.size() + arr2.size() + arr3.size() + arr4.size()));
+    EXPECT_THAT(vec, ElementsAre(ElementsAre(-1, 0, 1), ElementsAre(10, 20, 30, 40, -50),
+        ElementsAre(10000), ElementsAre(-2, 2)));
+    EXPECT_THAT(*it, ElementsAre(-2, 2));
+}
+
+TEST(InlineVector, insert_range_in_middle)
+{
+    constexpr std::array<int, 3u> arr1 = {-1, 0, 1};
+    constexpr std::array<int, 5u> arr2 = {10, 20, 30, 40, -50};
+    constexpr std::array<int, 1u> arr3 = {10000};
+    constexpr std::array<int, 2u> arr4 = {-2, 2};
+    data_structures::inline_vector<int> vec;
+
+    vec.push_back_range(arr1);
+    vec.push_back_range(arr2);
+    vec.push_back_range(arr3);
+    auto it = vec.insert_range(vec.begin() + 1u, arr4);
+
+    using namespace ::testing;
+    ASSERT_THAT(vec.num_ranges(), Eq(4u));
+    ASSERT_THAT(vec.size(), Eq(arr1.size() + arr2.size() + arr3.size() + arr4.size()));
+    ASSERT_THAT(vec.capacity(), Ge(arr1.size() + arr2.size() + arr3.size() + arr4.size()));
+    EXPECT_THAT(vec, ElementsAre(ElementsAre(-1, 0, 1), ElementsAre(-2, 2), 
+        ElementsAre(10, 20, 30, 40, -50), ElementsAre(10000)));
+    EXPECT_THAT(*it, ElementsAre(-2, 2));
+}
+
+TEST(InlineVector, insert_range_at_beginning)
+{
+    constexpr std::array<int, 3u> arr1 = {-1, 0, 1};
+    constexpr std::array<int, 5u> arr2 = {10, 20, 30, 40, -50};
+    constexpr std::array<int, 1u> arr3 = {10000};
+    constexpr std::array<int, 2u> arr4 = {-2, 2};
+    data_structures::inline_vector<int> vec;
+
+    vec.push_back_range(arr1);
+    vec.push_back_range(arr2);
+    vec.push_back_range(arr3);
+    auto it = vec.insert_range(vec.begin(), arr4);
+
+    using namespace ::testing;
+    ASSERT_THAT(vec.num_ranges(), Eq(4u));
+    ASSERT_THAT(vec.size(), Eq(arr1.size() + arr2.size() + arr3.size() + arr4.size()));
+    ASSERT_THAT(vec.capacity(), Ge(arr1.size() + arr2.size() + arr3.size() + arr4.size()));
+    EXPECT_THAT(vec, ElementsAre(ElementsAre(-2, 2), ElementsAre(-1, 0, 1), 
+        ElementsAre(10, 20, 30, 40, -50), ElementsAre(10000)));
+    EXPECT_THAT(*it, ElementsAre(-2, 2));
+}

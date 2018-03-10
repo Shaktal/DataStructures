@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <memory>
+#include <numeric>
 #include <vector>
 
 namespace tr::data_structures {
@@ -111,7 +112,7 @@ public: // Modifiers
     iterator erase_range(const_iterator pos);
     iterator erase_range(const_iterator first, const_iterator last);
 
-    // iterator insert_range(const_iterator pos, span<std::remove_const_t<T>> range);
+    iterator insert_range(const_iterator pos, span<std::add_const_t<T>> range);
     // template <typename InputIt>
     // iterator insert_range(const_iterator pos, InputIt first, InputIt last);
 
@@ -517,6 +518,68 @@ inline typename inline_vector<T, Allocator>::iterator inline_vector<T, Allocator
         );
         offset = std::distance(this->d_blockManager.begin(), it);
         return this->d_blockManager.data() + offset;
+    }
+}
+
+template <typename T, typename Allocator>
+inline typename inline_vector<T, Allocator>::iterator inline_vector<T, Allocator>::insert_range(
+    const_iterator pos, span<std::add_const_t<T>> range)
+{
+    if ((this->d_capacity - this->d_size) < range.length())
+    {
+        reserve(std::max(this->d_capacity * RESIZE_FACTOR + 1u,
+            this->d_capacity + range.length()));
+    }
+
+    auto it = this->d_blockManager.begin() + std::distance(this->d_blockManager.data(), 
+            const_cast<Block*>(pos));
+    it = this->d_blockManager.emplace(it);
+
+    std::ptrdiff_t offset = std::accumulate(this->d_blockManager.begin(), it, 0,
+        [](std::ptrdiff_t curr, Block& block) { return curr + block.length(); });
+    *it = Block{this->d_buffer + offset, range.length()};
+
+    std::ptrdiff_t numToConstruct = std::min(range.length(), this->d_size - offset);
+
+    try {
+        std::uninitialized_copy(
+            make_move_iterator_if_noexcept(this->d_buffer + this->d_size - numToConstruct),
+            make_move_iterator_if_noexcept(this->d_buffer + this->d_size),
+            this->d_buffer + this->d_size
+        );
+        std::copy_backward(
+            make_move_iterator_if_noexcept(this->d_buffer + offset),
+            make_move_iterator_if_noexcept(this->d_buffer + this->d_size - numToConstruct),
+            this->d_buffer + this->d_size
+        );
+        std::copy(range.begin(), range.end(), this->d_buffer + offset);
+    }
+    catch (...)
+    {
+        this->d_blockManager.erase(it);
+        std::copy(
+            make_move_iterator_if_noexcept(this->d_buffer + offset + range.length()),
+            make_move_iterator_if_noexcept(this->d_buffer + this->d_size + numToConstruct),
+            this->d_buffer + offset
+        );
+        throw;
+    }
+
+    std::for_each(it + 1u, this->d_blockManager.end(),
+        [len = range.length()](Block& block) noexcept {
+            block = Block{block.data() + len, block.length()};
+        }
+    );
+
+    this->d_size += range.length();
+    if constexpr (std::is_convertible_v<decltype(it), iterator>)
+    {
+        return it;
+    }
+    else
+    {
+        return this->d_blockManager.data() + 
+            std::distance(this->d_blockManager.begin(), it);
     }
 }
 
