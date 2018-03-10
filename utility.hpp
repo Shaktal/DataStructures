@@ -87,15 +87,15 @@ inline void safe_uninitialized_copy(InputIt first, InputIt last,
     }
 }
 
-// Utility to make a `move_iterator` if the type is a non-fundamental type
+// Utility to make a `move_iterator` if the type is a non-trivially copyable type
 // with a `noexcept` move constructor, else return the provided iterator.
 template <typename FwdIt>
 constexpr auto make_move_iterator_if_noexcept(FwdIt it) noexcept
-    -> std::conditional_t<!std::is_fundamental_v<typename std::iterator_traits<FwdIt>::value_type>
+    -> std::conditional_t<!std::is_trivially_copyable_v<typename std::iterator_traits<FwdIt>::value_type>
         && std::is_nothrow_move_constructible_v<typename std::iterator_traits<FwdIt>::value_type>,
         std::move_iterator<FwdIt>, FwdIt>
 {
-    using ResultType = std::conditional_t<!std::is_fundamental_v<typename std::iterator_traits<FwdIt>::value_type>
+    using ResultType = std::conditional_t<!std::is_trivially_copyable_v<typename std::iterator_traits<FwdIt>::value_type>
         && std::is_nothrow_move_constructible_v<typename std::iterator_traits<FwdIt>::value_type>,
         std::move_iterator<FwdIt>, FwdIt>;
 
