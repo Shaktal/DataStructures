@@ -7,6 +7,10 @@
 #include <new>
 #include <type_traits>
 
+// Include other utility-related classes/functions
+// that should be forwarded when utility is included.
+#include "detection.hpp"
+
 namespace tr::data_structures {
 
 // Check to see if an `Iterator` is at one of
@@ -100,6 +104,37 @@ constexpr auto make_move_iterator_if_noexcept(FwdIt it) noexcept
         std::move_iterator<FwdIt>, FwdIt>;
 
     return ResultType{it};
+}
+
+// Utility for constructing an equivalent to `back_inserter` for `push_back_range`
+template <typename Container>
+struct back_range_insert_iterator {
+    using value_type = void;
+    using reference = void;
+    using pointer = void;
+    using difference_type = void;
+    using iterator_category = std::output_iterator_tag;
+    using container_type = Container;
+
+    back_range_insert_iterator& operator*() noexcept { return *this; }
+    back_range_insert_iterator& operator++() noexcept { return *this; }
+    back_range_insert_iterator& operator++(int) noexcept { return *this; }
+
+    template <typename Range>
+    back_range_insert_iterator& operator=(Range&& range) {
+        d_container.push_back_range(std::forward<Range>(range).begin(),
+            std::forward<Range>(range).end());
+        return *this;
+    }
+
+    Container& d_container;
+};
+
+template <typename Container>
+constexpr auto back_range_inserter(Container& container) noexcept 
+    -> back_range_insert_iterator<Container> 
+{
+    return { container };
 }
 
 } // close namespace tr::data_structures

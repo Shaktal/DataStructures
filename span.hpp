@@ -32,6 +32,7 @@ public: // Types
 public: // Constructors
     constexpr span() noexcept;
     constexpr span(T* ptrBegin, std::size_t length) noexcept;
+    constexpr span(T* ptrBegin, T* ptrEnd) noexcept;
     template <std::size_t N>
     constexpr span(T (&arr)[N]) noexcept;
     template <std::size_t N>
@@ -132,6 +133,12 @@ template <typename T>
 inline constexpr span<T>::span(T* ptrBegin, std::size_t length) noexcept
     : d_begin(ptrBegin)
     , d_end(ptrBegin + length)
+{}
+
+template <typename T>
+inline constexpr span<T>::span(T* ptrBegin, T* ptrEnd) noexcept
+    : d_begin(ptrBegin)
+    , d_end(ptrEnd)
 {}
 
 template <typename T>

@@ -9,6 +9,10 @@
 #include <numeric>
 #include <vector>
 
+// TODO:
+//      - Find a way for this to work with move-only types, perhaps
+//        just accepting random ranges instead of specifically `span`s.
+
 namespace tr::data_structures {
 
 template <typename T, typename Allocator = std::allocator<T>>
@@ -26,6 +30,8 @@ public: // Types
     using value_type = span<T>;
     using reference = const span<T>&;
     using const_reference = const span<T>&;
+    using pointer = const span<T>*;
+    using const_pointer = const span<T>*;
 
     using iterator = const span<T>*;
     using const_iterator = const span<T>*; // TODO: Work out how to allow this to prevent access
@@ -525,14 +531,15 @@ template <typename T, typename Allocator>
 inline typename inline_vector<T, Allocator>::iterator inline_vector<T, Allocator>::insert_range(
     const_iterator pos, span<std::add_const_t<T>> range)
 {
+    auto dist = std::distance(this->d_blockManager.data(), 
+        const_cast<Block*>(pos));
     if ((this->d_capacity - this->d_size) < range.length())
     {
         reserve(std::max(this->d_capacity * RESIZE_FACTOR + 1u,
             this->d_capacity + range.length()));
     }
 
-    auto it = this->d_blockManager.begin() + std::distance(this->d_blockManager.data(), 
-            const_cast<Block*>(pos));
+    auto it = this->d_blockManager.begin() + dist;
     it = this->d_blockManager.emplace(it);
 
     std::ptrdiff_t offset = std::accumulate(this->d_blockManager.begin(), it, 0,
